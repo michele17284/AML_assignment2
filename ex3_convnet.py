@@ -196,12 +196,11 @@ def PrintModelSize(model, disp=True):
     # training                                                                      #
     #################################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-
-
+    model_sz = sum(p.numel() for p in model.parameters())
+    print(model_sz)
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-    #return model_sz
-    return
+    return model_sz
+
 
 
 
@@ -216,9 +215,18 @@ def VisualizeFilter(model):
     # You can use matlplotlib.imshow to visualize an image in python                #
     #################################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
-
+    weights = model.layer1.weight.data
+    max = torch.max(weights)
+    min = torch.min(weights)
+    weights = (weights-min)/max
+    fig = plt.figure(figsize=(50,50))
+    rows = 8
+    columns = 16
+    #print(weights.size(),weights)
+    for idx,image in enumerate(weights):
+        fig.add_subplot(rows,columns,idx+1)
+        plt.imshow(image.cpu())
+    #plt.imshow(fig)
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
 
