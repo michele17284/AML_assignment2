@@ -216,17 +216,29 @@ def VisualizeFilter(model):
     #################################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     weights = model.layer1.weight.data
+    #print(weights)
     max = torch.max(weights)
     min = torch.min(weights)
-    weights = (weights-min)/max
-    fig = plt.figure(figsize=(50,50))
+    # Figure out how 'wide' each range is
+    leftSpan = max - min
+    rightSpan = 255 - 0
+
+    # Convert the left range into a 0-1 range (float)
+    vals = (weights - min) / float(leftSpan)
+
+    # Convert the 0-1 range into a value in the right range.
+    weights = 0 + (vals * rightSpan)
+    weights = weights.int()
+    #weights = (weights-min)/max
+    print(weights)
+    fig = plt.figure(1)
     rows = 8
     columns = 16
     #print(weights.size(),weights)
     for idx,image in enumerate(weights):
-        fig.add_subplot(rows,columns,idx+1)
+        fig.add_subplot(rows,columns,idx+1,frame_on=False,xticks=[],yticks=[],xticklabels=[],yticklabels=[])
         plt.imshow(image.cpu())
-    #plt.imshow(fig)
+    plt.show()
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
 
@@ -253,7 +265,6 @@ PrintModelSize(model)
 # Visualize the filters before training
 #======================================================================================
 VisualizeFilter(model)
-
 
 
 # Loss and optimizer
@@ -388,7 +399,6 @@ with torch.no_grad():
 # Q1.c: Implementing the function to visualize the filters in the first conv layers.
 # Visualize the filters before training
 VisualizeFilter(model)
-
 
 
 # Save the model checkpoint
