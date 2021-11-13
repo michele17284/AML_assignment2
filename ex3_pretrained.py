@@ -34,8 +34,8 @@ learning_rate_decay = 0.99
 reg=0#0.001
 num_training= 49000
 num_validation =1000
-fine_tune = True
-pretrained=True
+fine_tune = False
+pretrained=False
 
 #-------------------------------------------------
 # Load the CIFAR-10 dataset
@@ -98,8 +98,11 @@ class VggModel(nn.Module):
         # disable training the feature extraction layers based on the fine_tune flag.   #
         #################################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        
+        self.vgg11 = models.vgg11_bn(pretrained=pretrained).to(device)
+        self.fc1 = nn.Linear(1000,1000).to(device)
+        self.fc2 = nn.Linear(1000,n_class).to(device)
+        self.relu = nn.ReLU()
+        #print(self.vgg11)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -108,9 +111,13 @@ class VggModel(nn.Module):
         # TODO: Implement the forward pass computations                                 #
         #################################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        
-
+        x = x.to(device)
+        out = self.vgg11(x)
+        out = self.fc1(out)
+        m = nn.BatchNorm1d(1000,device=device)
+        out = m(out)
+        out = self.relu(out)
+        out = self.fc2(out)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return out
 
@@ -131,7 +138,11 @@ print("Params to learn:")
 if fine_tune:
     params_to_update = []
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-    
+    for param in model.vgg11.features.parameters():
+        param.requires_grad = False
+    for p in model.parameters():
+        if p.requires_grad == True:
+            params_to_update.append(p)
     
     
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
