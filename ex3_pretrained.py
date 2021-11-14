@@ -3,6 +3,7 @@ import torch.nn as nn
 import torchvision
 from torchvision import models
 import torchvision.transforms as transforms
+import numpy as np
 
 import matplotlib.pyplot as plt
 
@@ -130,6 +131,46 @@ if (pretrained==False):
 # Print the model we just instantiated
 print(model)
 
+class EarlyStopping:
+    def __init__(self, patience=7, mode="max", delta=0.0001):
+        self.patience = patience
+        self.counter = 0
+        self.mode = mode
+        self.best_score = None
+        self.early_stop = False
+        self.delta = delta
+        
+        if self.mode == "min":
+            self.val_score = np.Inf
+        else:
+            self.val_score = -np.Inf
+
+    def __call__(self, epoch_score, model, model_path):
+
+        if self.mode == "min":
+            score = -1.0 * epoch_score
+        else:
+            score = np.copy(epoch_score)
+
+        if self.best_score is None:
+            self.best_score = score
+            self.save_checkpoint(epoch_score, model, model_path)
+        elif score < self.best_score + self.delta:
+            self.counter += 1
+            print('EarlyStopping counter: {} out of {}'.format(self.counter, self.patience))
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.save_checkpoint(epoch_score, model, model_path)
+            self.counter = 0
+
+    def save_checkpoint(self, epoch_score, model, model_path):
+        if epoch_score not in [-np.inf, np.inf, -np.nan, np.nan]:
+            print('Validation score improved ({} --> {}). Save model'.format(self.val_score, epoch_score))
+            torch.save(model.state_dict(), model_path)
+        self.val_score = epoch_score
+
 #################################################################################
 # TODO: Only select the required parameters to pass to the optimizer. No need to#
 # update parameters which should be held fixed (conv layers).                   #
@@ -160,6 +201,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(params_to_update, lr=learning_rate, weight_decay=reg)
 
 # Train the model
+es = EarlyStopping(patience=2, mode="max")
 lr = learning_rate
 total_step = len(train_loader)
 loss_train = []
@@ -230,8 +272,10 @@ for epoch in range(num_epochs):
         #################################################################################
 
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-
+        es(accuracy, model, 'model.bin')   
+        if es.early_stop:
+            print("Early stopping")             
+            break
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -260,8 +304,12 @@ plt.show()
 # weights from the best model so far and perform testing with this model.       #
 #################################################################################
 # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-
+model = ConvNet(input_size, 
+                hidden_size, 
+                num_classes, 
+                norm_layer=norm_layer).to(device)
+model.load_state_dict(torch.load(f"model.bin"))
+model.eval()
 
 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -286,5 +334,4 @@ with torch.no_grad():
 
 # Save the model checkpoint
 #torch.save(model.state_dict(), 'model.ckpt')
-
 
