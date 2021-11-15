@@ -113,34 +113,33 @@ class ConvNet(nn.Module):
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         # out = (N-F)/stride + 1
         #print(input_size)
-        '''
-        layers = [nn.Conv2d(input_size,128,(3,3)),
-                  nn.MaxPool2d((2,2),2,1),
+
+        
+        
+        layers = [nn.Conv2d(input_size,hidden_layers[0],3,padding=1),
+                  nn.BatchNorm2d(hidden_layers[0],device=device),
+                  nn.MaxPool2d((2,2),2),
                   nn.ReLU(),
-                  nn.Conv2d(128, 512,(3,3)),
-                  nn.MaxPool2d((2, 2), 2,1),
+                  nn.Conv2d(hidden_layers[0], hidden_layers[1],3,padding=1),
+                  nn.BatchNorm2d(hidden_layers[1],device=device),
+                  nn.MaxPool2d((2,2),2),
                   nn.ReLU(),
-                  nn.Conv2d(512, 512,(3,3)),
-                  nn.MaxPool2d((2, 2), 2,1),
+                  nn.Conv2d(hidden_layers[1], hidden_layers[2],3,padding=1),
+                  nn.BatchNorm2d(hidden_layers[2],device=device),
+                  nn.MaxPool2d((2,2),2),
                   nn.ReLU(),
-                  nn.Conv2d(512, 512,(3,3)),
-                  nn.MaxPool2d((2, 2), 2,1),
+                  nn.Conv2d(hidden_layers[2], hidden_layers[3],3, padding=1),
+                  nn.BatchNorm2d(hidden_layers[3],device=device),
+                  nn.MaxPool2d((2,2),2),
                   nn.ReLU(),
-                  nn.Conv2d(512, 512,(3,3)),
-                  nn.MaxPool2d((2, 2), 2,1),
+                  nn.Conv2d(hidden_layers[3], hidden_layers[4],3,padding=1),
+                  nn.BatchNorm2d(hidden_layers[4],device=device),
+                  nn.MaxPool2d((2,2),2),
+                  nn.Flatten(),
                   nn.ReLU(),
-                  nn.Linear(512,num_classes)]
+                  nn.Linear(hidden_layers[4],num_classes)]
         self.layers = nn.Sequential(*layers)
-        '''
-        self.layer1 = nn.Conv2d(input_size,128,3,padding=1)
-        self.pool1 = nn.MaxPool2d((2,2),2)
-        self.pool2 = nn.MaxPool2d((2, 2), 3)
-        self.layer2 = nn.Conv2d(128, 512,3,padding=1)
-        self.layer3 = nn.Conv2d(512, 512, 3,padding=1)
-        self.layer4 = nn.Conv2d(512, 512, 3,padding=1)
-        self.layer5 = nn.Conv2d(512, 512, 3,padding=1)
-        self.fc = nn.Linear(512,num_classes)
-        self.relu = nn.ReLU()
+
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     def forward(self, x):
@@ -149,44 +148,9 @@ class ConvNet(nn.Module):
         #################################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        #out = self.layers(x)
-        #print(x.size())
-        out = self.layer1(x)
-        batch_norm = nn.BatchNorm2d(128,device=device)
-        out = batch_norm(out)
-        #print(out.size())
-        out = self.pool1(out)
-        #print(out.size())
-        out = self.relu(out)
-        out = self.layer2(out)
-        batch_norm2 = nn.BatchNorm2d(512,device=device)
-        out = batch_norm2(out)
-        #print(out.size())
-        out = self.pool1(out)
-        #print(out.size())
-        out = self.relu(out)
-        out = self.layer3(out)
-        out = batch_norm2(out)
-        #print(out.size())
-        out = self.pool1(out)
-        #print(out.size())
-        out = self.relu(out)
-        out = self.layer4(out)
-        out = batch_norm2(out)
-        #print(out.size())
-        out = self.pool1(out)
-        #print(out.size())
-        out = self.relu(out)
-        out = self.layer5(out)
-        out = batch_norm2(out)
-        #print(out.size())
-        out = self.pool1(out)
-        #print(out.size())
-        self.flatten = nn.Flatten()
-        out = self.flatten(out)
-        #print(out.size())
-        out = self.relu(out)
-        out = self.fc(out)
+        out = self.layers(x)
+
+
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return out
 
@@ -221,7 +185,7 @@ def VisualizeFilter(model):
     # You can use matlplotlib.imshow to visualize an image in python                #
     #################################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-    weights = model.layer1.weight.data
+    weights = model.layers[0].weight.data
     #print(weights)
     max = torch.max(weights)
     min = torch.min(weights)
