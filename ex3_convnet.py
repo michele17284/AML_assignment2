@@ -6,6 +6,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
+
 def weights_init(m):
 	if type(m) == nn.Linear:
 		m.weight.data.normal_(0.0, 1e-3)
@@ -29,7 +30,7 @@ print('Using device: %s' % device)
 input_size = 3
 num_classes = 10
 hidden_size = [128, 512, 512, 512, 512]
-num_epochs = 50
+num_epochs = 20
 batch_size = 200
 learning_rate = 2e-3
 learning_rate_decay = 0.95
@@ -55,18 +56,11 @@ data_aug_parameters = {
 	"CJ_saturation": 0,  # default = 0
 	"CJ_hue": 0,  # default = 0
 	"P_padding": 3, "P_type": "constant",  # default = constant
-	"HF_p": 0.5, "VF_p": 0.5, "RR_degrees": 10,
-	"RG_p": 0.2}
-'''
-data_aug_transforms += [
-	transforms.RandomCrop(data_aug_parameters["RC_size"], padding=data_aug_parameters["RC_padding"]),
-	transforms.RandomHorizontalFlip(data_aug_parameters["HF_p"]),
-	# transforms.RandomVerticalFlip(data_aug_parameters["VF_p"]),
-	transforms.RandomRotation(degrees=data_aug_parameters["RR_degrees"]),
-	# transforms.ColorJitter(brightness=data_aug_parameters["CJ_brightness"], contrast=data_aug_parameters["CJ_contrast"], saturation=data_aug_parameters["CJ_saturation"], hue=data_aug_parameters["CJ_hue"]),
-	transforms.RandomGrayscale(data_aug_parameters["RG_p"]),
-]
-'''
+	"HF_p": 0.5, "VF_p": 0.5, "RR_degrees": 10, "RG_p": 0.2}
+
+data_aug_transforms += [transforms.RandomCrop(data_aug_parameters["RC_size"], padding=data_aug_parameters["RC_padding"]), transforms.RandomHorizontalFlip(data_aug_parameters["HF_p"]), # transforms.RandomVerticalFlip(data_aug_parameters["VF_p"]),
+	transforms.RandomRotation(degrees=data_aug_parameters["RR_degrees"]), # transforms.ColorJitter(brightness=data_aug_parameters["CJ_brightness"], contrast=data_aug_parameters["CJ_contrast"], saturation=data_aug_parameters["CJ_saturation"], hue=data_aug_parameters["CJ_hue"]),
+	transforms.RandomGrayscale(data_aug_parameters["RG_p"]), ]
 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 norm_transform = transforms.Compose(data_aug_transforms + [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 test_transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -109,23 +103,23 @@ class ConvNet(nn.Module):
 		layers = []
 		# *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-		#Init dropout parameter
+		# Modified Hyperparameters
 		dropout = 0
 
-		#Create input layer,  eventually also Normalization Layers
+		# Create input layer,  eventually also Normalization Layers
 		layers += [nn.Conv2d(input_size, hidden_layers[0], 3, padding=1)]
 		if norm_layer == 'BN': layers += [nn.BatchNorm2d(hidden_layers[0], device=device)]
 		layers += [nn.Dropout(dropout)]
 
-		#For Each other layers
+		# For Each other layers
 		for index, value in enumerate(hidden_layers[:-1]):
 			layers += [nn.MaxPool2d((2, 2), 2), nn.ReLU()]
-			layers += [nn.Conv2d(hidden_layers[index], hidden_layers[index +1], 3, padding=1)]
-			if norm_layer == 'BN': layers += [nn.BatchNorm2d(hidden_layers[index+1], device=device)]
+			layers += [nn.Conv2d(hidden_layers[index], hidden_layers[index + 1], 3, padding=1)]
+			if norm_layer == 'BN': layers += [nn.BatchNorm2d(hidden_layers[index + 1], device=device)]
 			layers += [nn.Dropout(dropout)]
 
-		#Create output with flatten
-		layers += [nn.MaxPool2d((2, 2), 2),nn.Flatten(), nn.ReLU()]
+		# Create output with flatten
+		layers += [nn.MaxPool2d((2, 2), 2), nn.Flatten(), nn.ReLU()]
 		layers += [nn.Linear(hidden_layers[-1], num_classes)]
 
 		self.layers = nn.Sequential(*layers)
@@ -171,9 +165,11 @@ def VisualizeFilter(model):
 	#################################################################################
 	# *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 	weights = model.layers[0].weight.data
+
 	# print(weights)
 	max = torch.max(weights)
 	min = torch.min(weights)
+
 	# Figure out how 'wide' each range is
 	leftSpan = max - min
 	rightSpan = 255 - 0
@@ -184,19 +180,21 @@ def VisualizeFilter(model):
 	# Convert the 0-1 range into a value in the right range.
 	weights = 0 + (vals * rightSpan)
 	weights = weights.int()
+
 	# weights = (weights-min)/max
 	print(weights)
 	fig = plt.figure(1)
 	rows = 8
 	columns = 16
+
 	# print(weights.size(),weights)
 	for idx, image in enumerate(weights):
 		fig.add_subplot(rows, columns, idx + 1, frame_on=False, xticks=[], yticks=[], xticklabels=[], yticklabels=[])
 		plt.imshow(image.cpu())
 	plt.show()
-# *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
 
+#Part of the code for Q2.b
 class EarlyStopping:
 	def __init__(self, patience=7, mode="max", delta=0.0001):
 		self.patience = patience
@@ -223,7 +221,7 @@ class EarlyStopping:
 		elif score < self.best_score + self.delta:
 			self.counter += 1
 			print('EarlyStopping counter: {} out of {}'.format(self.counter, self.patience))
-			if self.counter >= self.patience:
+			if -1 < self.patience <= self.counter:
 				self.early_stop = True
 		else:
 			self.best_score = score
@@ -235,6 +233,10 @@ class EarlyStopping:
 			print('Validation score improved ({} --> {}). Save model'.format(self.val_score, epoch_score))
 			torch.save(model.state_dict(), model_path)
 		self.val_score = epoch_score
+
+es = EarlyStopping(patience=-1, mode="max")
+
+	# *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
 
 # ======================================================================================
@@ -265,7 +267,6 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=reg)
 
 # Train the model
-es = EarlyStopping(patience=2, mode="max")
 lr = learning_rate
 total_step = len(train_loader)
 loss_train = []
@@ -334,7 +335,7 @@ for epoch in range(num_epochs):
 		#################################################################################
 
 		# *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-		es(accuracy, model, 'model.bin')
+		es(accuracy, model, 'model.ckpt')
 		if es.early_stop:
 			print("Early stopping")
 			break  # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****

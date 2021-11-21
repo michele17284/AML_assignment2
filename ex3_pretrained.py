@@ -41,7 +41,20 @@ pretrained=True
 #-------------------------------------------------
 # Load the CIFAR-10 dataset
 #-------------------------------------------------
-data_aug_transforms = [transforms.RandomHorizontalFlip(p=0.5)]#, transforms.RandomGrayscale(p=0.05)]
+data_aug_parameters = {
+	"RC_size": 32, "RC_padding": 2,  # default = none
+	"P_padding": 3, "P_type": "constant",  # default = constant
+	"HF_p": 0.5, "RR_degrees": 10,
+	"RG_p": 0.2}
+
+
+data_aug_transforms = [
+	transforms.RandomCrop(data_aug_parameters["RC_size"], padding=data_aug_parameters["RC_padding"]),
+	transforms.RandomHorizontalFlip(data_aug_parameters["HF_p"]),
+	transforms.RandomRotation(degrees=data_aug_parameters["RR_degrees"]),
+	transforms.RandomGrayscale(data_aug_parameters["RG_p"]),
+]
+
 ###############################################################################
 # TODO: Add to data_aug_transforms the best performing data augmentation      #
 # strategy and hyper-parameters as found out in Q3.a                          #
@@ -131,45 +144,6 @@ if (pretrained==False):
 # Print the model we just instantiated
 print(model)
 
-class EarlyStopping:
-    def __init__(self, patience=7, mode="max", delta=0.0001):
-        self.patience = patience
-        self.counter = 0
-        self.mode = mode
-        self.best_score = None
-        self.early_stop = False
-        self.delta = delta
-        
-        if self.mode == "min":
-            self.val_score = np.Inf
-        else:
-            self.val_score = -np.Inf
-
-    def __call__(self, epoch_score, model, model_path):
-
-        if self.mode == "min":
-            score = -1.0 * epoch_score
-        else:
-            score = np.copy(epoch_score)
-
-        if self.best_score is None:
-            self.best_score = score
-            self.save_checkpoint(epoch_score, model, model_path)
-        elif score < self.best_score + self.delta:
-            self.counter += 1
-            print('EarlyStopping counter: {} out of {}'.format(self.counter, self.patience))
-            if self.counter >= self.patience:
-                self.early_stop = True
-        else:
-            self.best_score = score
-            self.save_checkpoint(epoch_score, model, model_path)
-            self.counter = 0
-
-    def save_checkpoint(self, epoch_score, model, model_path):
-        if epoch_score not in [-np.inf, np.inf, -np.nan, np.nan]:
-            print('Validation score improved ({} --> {}). Save model'.format(self.val_score, epoch_score))
-            torch.save(model.state_dict(), model_path)
-        self.val_score = epoch_score
 
 #################################################################################
 # TODO: Only select the required parameters to pass to the optimizer. No need to#
@@ -184,14 +158,55 @@ if fine_tune:
     for p in model.parameters():
         if p.requires_grad == True:
             params_to_update.append(p)
-    
-    
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 else:
     params_to_update = model.parameters()
     for name,param in model.named_parameters():
         if param.requires_grad == True:
             print("\t",name)
+
+
+#Part of the code for Q2.b
+class EarlyStopping:
+	def __init__(self, patience=7, mode="max", delta=0.0001):
+		self.patience = patience
+		self.counter = 0
+		self.mode = mode
+		self.best_score = None
+		self.early_stop = False
+		self.delta = delta
+
+		if self.mode == "min":
+			self.val_score = np.Inf
+		else:
+			self.val_score = -np.Inf
+
+	def __call__(self, epoch_score, model, model_path):
+		if self.mode == "min":
+			score = -1.0 * epoch_score
+		else:
+			score = np.copy(epoch_score)
+
+		if self.best_score is None:
+			self.best_score = score
+			self.save_checkpoint(epoch_score, model, model_path)
+		elif score < self.best_score + self.delta:
+			self.counter += 1
+			print('EarlyStopping counter: {} out of {}'.format(self.counter, self.patience))
+			if -1 < self.patience <= self.counter:
+				self.early_stop = True
+		else:
+			self.best_score = score
+			self.save_checkpoint(epoch_score, model, model_path)
+			self.counter = 0
+
+	def save_checkpoint(self, epoch_score, model, model_path):
+		if epoch_score not in [-np.inf, np.inf, -np.nan, np.nan]:
+			print('Validation score improved ({} --> {}). Save model'.format(self.val_score, epoch_score))
+			torch.save(model.state_dict(), model_path)
+		self.val_score = epoch_score
+
+es = EarlyStopping(patience=-1, mode="max")
 
 
 model.to(device)
@@ -201,7 +216,6 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(params_to_update, lr=learning_rate, weight_decay=reg)
 
 # Train the model
-es = EarlyStopping(patience=2, mode="max")
 lr = learning_rate
 total_step = len(train_loader)
 loss_train = []
@@ -272,11 +286,10 @@ for epoch in range(num_epochs):
         #################################################################################
 
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        es(accuracy, model, 'model.bin')   
+        es(accuracy, model, 'model.ckpt')
         if es.early_stop:
             print("Early stopping")             
             break
-
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     
@@ -304,11 +317,8 @@ plt.show()
 # weights from the best model so far and perform testing with this model.       #
 #################################################################################
 # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-model = ConvNet(input_size, 
-                hidden_size, 
-                num_classes, 
-                norm_layer=norm_layer).to(device)
-model.load_state_dict(torch.load(f"model.bin"))
+model = VggModel(num_classes, fine_tune, pretrained).to(device)
+model.load_state_dict(torch.load('model.ckpt'))
 model.eval()
 
 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
