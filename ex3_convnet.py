@@ -39,7 +39,7 @@ learning_rate_decay = 0.95
 reg = 0.001
 num_training = 49000
 num_validation = 1000
-norm_layer = None  # norm_layer = 'BN'
+norm_layer = 'BN'  # norm_layer = 'BN'
 print(hidden_size)
 
 # -------------------------------------------------
@@ -121,14 +121,14 @@ class ConvNet(nn.Module):
 		# For Each other layers
 		for index, value in enumerate(hidden_layers[:-1]):
 			layers += [nn.MaxPool2d((2, 2), 2), nn.ReLU()]
-			# layers += [nn.Dropout(dropout)]
+			layers += [nn.Dropout(dropout)]
 			layers += [nn.Conv2d(hidden_layers[index], hidden_layers[index + 1], 3, padding=1)]
 			if norm_layer == 'BN': layers += [nn.BatchNorm2d(hidden_layers[index + 1], device=device)]
 
 		# Create output with flatten
 		layers += [nn.MaxPool2d((2, 2), 2), nn.Flatten(), nn.ReLU()]
 		layers += [nn.Linear(hidden_layers[-1], num_classes)]
-		# layers += [nn.Dropout(dropout)]
+		layers += [nn.Dropout(dropout)]
 
 		self.layers = nn.Sequential(*layers)
 
@@ -200,7 +200,8 @@ def VisualizeFilter(model):
 	for idx, image in enumerate(weights):
 		fig.add_subplot(rows, columns, idx + 1, frame_on=False, xticks=[], yticks=[], xticklabels=[], yticklabels=[])
 		plt.imshow(image.cpu())
-	plt.show()  # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+	plt.show()
+	# *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
 
 # ======================================================================================
@@ -320,7 +321,7 @@ for epoch in range(num_epochs):
 		#	print('Stop')
 		#	break
 torch.save(best_model.state_dict(), 'model.ckpt')
-# *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+	# *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
 # Test the model
 # In test phase, we don't need to compute gradients (for memory efficiency)
