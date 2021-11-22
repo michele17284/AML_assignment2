@@ -41,24 +41,29 @@ pretrained=True
 #-------------------------------------------------
 # Load the CIFAR-10 dataset
 #-------------------------------------------------
+
+###############################################################################
+# TODO: Add to data_aug_transforms the best performing data augmentation      #
+# strategy and hyper-parameters as found out in Q3.a                          #
+###############################################################################
+
 data_aug_parameters = {
-	"RC_size": 32, "RC_padding": 2,  # default = none
-	"P_padding": 3, "P_type": "constant",  # default = constant
-	"HF_p": 0.5, "RR_degrees": 10,
-	"RG_p": 0.2}
+    "RC_size": 32, "RC_padding": 2,  # default = none
+    "CJ_brightness": 0,  # default = 0
+    "CJ_contrast": 0,  # default = 0
+    "CJ_saturation": 0,  # default = 0
+    "CJ_hue": 0,  # default = 0
+    "P_padding": 3, "P_type": "constant",  # default = constant
+    "HF_p": 0.5, "VF_p": 0.5, "RR_degrees": 10, "RG_p": 0.2}
 
 
 data_aug_transforms = [
 	transforms.RandomCrop(data_aug_parameters["RC_size"], padding=data_aug_parameters["RC_padding"]),
 	transforms.RandomHorizontalFlip(data_aug_parameters["HF_p"]),
 	transforms.RandomRotation(degrees=data_aug_parameters["RR_degrees"]),
-	transforms.RandomGrayscale(data_aug_parameters["RG_p"]),
+  transforms.ColorJitter(brightness=data_aug_parameters["CJ_brightness"], contrast=data_aug_parameters["CJ_contrast"], saturation=data_aug_parameters["CJ_saturation"], hue=data_aug_parameters["CJ_hue"]),
 ]
 
-###############################################################################
-# TODO: Add to data_aug_transforms the best performing data augmentation      #
-# strategy and hyper-parameters as found out in Q3.a                          #
-###############################################################################
 
 norm_transform = transforms.Compose(data_aug_transforms+[transforms.ToTensor(),
                                      transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
@@ -245,25 +250,23 @@ for epoch in range(num_epochs):
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         early_stop = False
         patience = 3
-        if epoch > patience-1:
-            for j in range(patience-1):
+        if epoch > patience - 1:
+            for j in range(patience - 1):
                 if max(accuracy_val) > list(reversed(accuracy_val))[j]:
-                    not_improving_epochs += 1
+                    if "not_improving_epochs" in locals(): not_improving_epochs += 1
+                    else: not_improving_epochs = 1
                     print('Not saving the model')
                 else:
                     not_improving_epochs = 0
                     best_model = model
-                    print("Saving model")       
+                    print("Saving the model")
                     break
                 if not_improving_epochs >= patience:
                     early_stop = True
                     print('Early stopping')
                     break
                 break
-        # if early_stop == True:
-        #     print('Stop')
-        #     break
-torch.save(best_model.state_dict(),'model.bin')
+torch.save(best_model.state_dict(),'model.ckpt')
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     
@@ -291,7 +294,7 @@ plt.show()
 # weights from the best model so far and perform testing with this model.       #
 #################################################################################
 # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-model.load_state_dict(torch.load('model.bin'))
+model.load_state_dict(torch.load('model.ckpt'))
 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
 # Test the model
